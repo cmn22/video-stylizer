@@ -1,1 +1,20 @@
-/venv
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+
+# VSCode / MacOS system files
+.vscode/
+.DS_Store
+
+# Uploaded videos (runtime data, not code)
+uploads/
+stylized/
+downloads/
+
+# Environment variables
+.env
