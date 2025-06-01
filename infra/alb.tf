@@ -32,7 +32,7 @@ resource "aws_lb" "app" {
   subnets            = [aws_subnet.public_1.id, aws_subnet.public_2.id]
   security_groups    = [aws_security_group.alb_sg.id]
 
-  idle_timeout = 300  # ALB idle timeout
+  idle_timeout = 3000  # ALB idle timeout
 
   tags = {
     Name = "${var.project_name}-alb"
