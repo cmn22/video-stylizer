@@ -1,4 +1,4 @@
-name: CI/CD - Deploy to AWS ECS
+name: Deploy to AWS ECS
 
 on:
   push:
@@ -7,6 +7,12 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      ECR_REGISTRY: 906697541576.dkr.ecr.ap-south-1.amazonaws.com
+      ECR_REPOSITORY: video-stylizer-repo
+      ECS_CLUSTER: video-stylizer-cluster
+      ECS_SERVICE: video-stylizer-service
+      CONTAINER_NAME: video-stylizer-container
 
     steps:
       - name: Checkout code
@@ -21,17 +27,37 @@ jobs:
 
       - name: Login to Amazon ECR
         run: |
-          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 906697541576.dkr.ecr.ap-south-1.amazonaws.com
+          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
+
+      - name: Extract Git SHA
+        id: vars
+        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Build Docker image
-        run: docker build -t video-stylizer .
+        run: docker build -t $ECR_REPOSITORY:${{ steps.vars.outputs.sha }} .
 
-      - name: Tag Docker image for ECR
-        run: docker tag video-stylizer:latest 906697541576.dkr.ecr.ap-south-1.amazonaws.com/video-stylizer-repo:latest
-
-      - name: Push Docker image to ECR
-        run: docker push 906697541576.dkr.ecr.ap-south-1.amazonaws.com/video-stylizer-repo:latest
-
-      - name: Deploy ECS service (force new deployment)
+      - name: Tag and Push to ECR
         run: |
-          aws ecs update-service --cluster video-stylizer-cluster --service video-stylizer-service --force-new-deployment
+          docker tag $ECR_REPOSITORY:${{ steps.vars.outputs.sha }} $ECR_REGISTRY/$ECR_REPOSITORY:${{ steps.vars.outputs.sha }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ steps.vars.outputs.sha }}
+
+      - name: Register new ECS task definition revision
+        id: task-def
+        run: |
+          TASK_DEF_ARN=$(aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --query "services[0].taskDefinition" --output text)
+          aws ecs describe-task-definition --task-definition $TASK_DEF_ARN --query "taskDefinition" > task-def.json
+          IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:${{ steps.vars.outputs.sha }}"
+          cat task-def.json | jq --arg IMAGE "$IMAGE" --arg NAME "$CONTAINER_NAME" '
+            .containerDefinitions |= map(if .name == $NAME then .image = $IMAGE else . end)
+            | {family, taskRoleArn, executionRoleArn, networkMode, containerDefinitions, volumes, placementConstraints, requiresCompatibilities, cpu, memory, ipcMode, pidMode, proxyConfiguration, inferenceAccelerators}
+          ' > new-task-def.json
+          REGISTERED=$(aws ecs register-task-definition --cli-input-json file://new-task-def.json)
+          NEW_TASK_DEF_ARN=$(echo $REGISTERED | jq -r '.taskDefinition.taskDefinitionArn')
+          echo "task_def_arn=$NEW_TASK_DEF_ARN" >> $GITHUB_OUTPUT
+
+      - name: Update ECS service with new task definition
+        run: |
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $ECS_SERVICE \
+            --task-definition ${{ steps.task-def.outputs.task_def_arn }}
