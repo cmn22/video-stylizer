@@ -47,8 +47,8 @@ resource "aws_ecs_task_definition" "app_task" {
   family                   = "${var.project_name}-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "256"          # 0.25 vCPU
-  memory                   = "512"          # 512 MB RAM
+  cpu                      = "512"          # 0.5 vCPU
+  memory                   = "1024"         # 1 GB RAM
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
