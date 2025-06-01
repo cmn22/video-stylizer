@@ -1,5 +1,6 @@
 import cv2
 import os
+from natsort import natsorted
 from app.styler import save_cartoonized_image
 
 UPLOAD_DIR = "uploads"
@@ -32,3 +33,28 @@ def extract_frames(video_path: str, output_dir: str):
 
     cap.release()
     return count  # Number of frames extracted
+
+
+def frames_to_video(frames_dir: str, output_path: str, fps: int = 24):
+    frames = natsorted([
+        f for f in os.listdir(frames_dir)
+        if f.lower().endswith((".jpg", ".png"))
+    ])
+
+    if not frames:
+        raise ValueError("No frames found to create video.")
+
+    first_frame_path = os.path.join(frames_dir, frames[0])
+    first_frame = cv2.imread(first_frame_path)
+    height, width, _ = first_frame.shape
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v') # type: ignore
+    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+
+    for frame_name in frames:
+        frame_path = os.path.join(frames_dir, frame_name)
+        frame = cv2.imread(frame_path)
+        out.write(frame)
+
+    out.release()
