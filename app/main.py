@@ -3,12 +3,14 @@ from fastapi.responses import FileResponse
 from app.utils import extract_frames, safe_video_path, frames_to_video, STYLE_FUNCTIONS
 import os
 import uuid
+import shutil
 
 app = FastAPI()
 
 UPLOAD_DIR = "uploads"
 FRAME_DIR = "frames"
 STYLE_DIR = "styled_frames"
+folders = ["uploads", "frames", "styled_frames", "styled_videos"]
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(FRAME_DIR, exist_ok=True)
@@ -117,3 +119,41 @@ def download_frame(video_id: str, style: str, frame_name: str):
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Styled frame not found")
     return FileResponse(path=file_path, media_type="image/jpeg", filename=frame_name)
+
+
+@app.delete("/delete_video")
+def delete_video(video_id: str):
+    deleted = []
+
+    for folder in folders:
+        path = os.path.join(folder, video_id)
+
+        # Case: entire subdirectory exists
+        if os.path.exists(path) and os.path.isdir(path):
+            shutil.rmtree(path)
+            deleted.append(path)
+
+        # Special case: uploads contains files, not dirs
+        elif folder == "uploads":
+            for f in os.listdir("uploads"):
+                if f.startswith(video_id):
+                    file_path = os.path.join("uploads", f)
+                    os.remove(file_path)
+                    deleted.append(file_path)
+
+    if not deleted:
+        raise HTTPException(status_code=404, detail="No matching files found.")
+    
+    return {"message": "Deleted resources", "deleted": deleted}
+
+
+@app.delete("/delete_all")
+def delete_all():
+    for folder in folders:
+        for item in os.listdir(folder):
+            path = os.path.join(folder, item)
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
+    return {"message": "All files and folders deleted from uploads, frames, styled_frames, and styled_videos"}
