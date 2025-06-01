@@ -7,10 +7,12 @@ import shutil
 
 app = FastAPI()
 
-UPLOAD_DIR = "uploads"
-FRAME_DIR = "frames"
-STYLE_DIR = "styled_frames"
-folders = ["uploads", "frames", "styled_frames", "styled_videos"]
+BASE_DIR = "data"
+
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+FRAME_DIR = os.path.join(BASE_DIR, "frames")
+STYLE_DIR = os.path.join(BASE_DIR, "styled_frames")
+folders = [os.path.join(BASE_DIR, "uploads"), os.path.join(BASE_DIR, "frames"), os.path.join(BASE_DIR, "styled_frames"), os.path.join(BASE_DIR, "styled_videos")]
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(FRAME_DIR, exist_ok=True)
@@ -87,8 +89,8 @@ def style_all_frames(video_id: str, style: str):
 
 @app.post("/create_stylized_video")
 def create_stylized_video(video_id: str, style: str):
-    input_dir = os.path.join("styled_frames", video_id, style)
-    output_path = os.path.join("styled_videos", video_id, f"{style}.mp4")
+    input_dir = os.path.join(BASE_DIR, "styled_frames", video_id, style)
+    output_path = os.path.join(BASE_DIR, "styled_videos", video_id, f"{style}.mp4")
 
     if not os.path.exists(input_dir):
         raise HTTPException(status_code=404, detail="Styled frames not found")
@@ -106,7 +108,7 @@ def create_stylized_video(video_id: str, style: str):
 
 @app.get("/download_video")
 def download_video(video_id: str, style: str):
-    file_path = os.path.join("styled_videos", video_id, f"{style}.mp4")
+    file_path = os.path.join(BASE_DIR, "styled_videos", video_id, f"{style}.mp4")
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Styled video not found")
     return FileResponse(path=file_path, media_type="video/mp4", filename=f"{video_id}_{style}.mp4")
@@ -115,7 +117,7 @@ def download_video(video_id: str, style: str):
 # Download a single styled frame
 @app.get("/download_frame")
 def download_frame(video_id: str, style: str, frame_name: str):
-    file_path = os.path.join("styled_frames", video_id, style, frame_name)
+    file_path = os.path.join(BASE_DIR, "styled_frames", video_id, style, frame_name)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Styled frame not found")
     return FileResponse(path=file_path, media_type="image/jpeg", filename=frame_name)
@@ -134,10 +136,10 @@ def delete_video(video_id: str):
             deleted.append(path)
 
         # Special case: uploads contains files, not dirs
-        elif folder == "uploads":
-            for f in os.listdir("uploads"):
+        elif folder == os.path.join(BASE_DIR, "uploads"):
+            for f in os.listdir(folder):
                 if f.startswith(video_id):
-                    file_path = os.path.join("uploads", f)
+                    file_path = os.path.join(folder, f)
                     os.remove(file_path)
                     deleted.append(file_path)
 
@@ -161,5 +163,5 @@ def delete_all():
 
 @app.get("/list_uploads")
 def list_uploads():
-    files = os.listdir("uploads")
+    files = os.listdir(os.path.join(BASE_DIR, "uploads"))
     return {"total_videos": len(files), "videos": files}
