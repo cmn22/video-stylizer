@@ -1,7 +1,13 @@
 import cv2
 import os
+from app.styler import save_cartoonized_image
 
 UPLOAD_DIR = "uploads"
+
+
+STYLE_FUNCTIONS = {
+    "cartoon": save_cartoonized_image
+}
 
 
 def safe_video_path(video_id_or_filename: str) -> str:
