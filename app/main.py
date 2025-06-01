@@ -1,7 +1,7 @@
 
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
-from app.utils import extract_frames, safe_video_path, STYLE_FUNCTIONS
+from app.utils import extract_frames, safe_video_path, frames_to_video, STYLE_FUNCTIONS
 import os
 import uuid
 
@@ -81,4 +81,23 @@ def style_all_frames(video_id: str, style: str):
         "message": f"All frames styled with '{style}'",
         "styled_dir": output_dir,
         "styled_frames": frame_files
+    }
+
+
+@app.post("/create_stylized_video")
+def create_stylized_video(video_id: str, style: str):
+    input_dir = os.path.join("styled_frames", video_id, style)
+    output_path = os.path.join("styled_videos", video_id, f"{style}.mp4")
+
+    if not os.path.exists(input_dir):
+        raise HTTPException(status_code=404, detail="Styled frames not found")
+
+    try:
+        frames_to_video(input_dir, output_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {
+        "message": f"{style} video created successfully",
+        "video_path": output_path
     }
