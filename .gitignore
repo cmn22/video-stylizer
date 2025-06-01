@@ -13,7 +13,9 @@ venv/
 
 # Uploaded videos (runtime data, not code)
 uploads/
-stylized/
+frames/
+styled_frames/
+styled_videos/
 downloads/
 
 # Environment variables
