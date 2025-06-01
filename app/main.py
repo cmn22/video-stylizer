@@ -1,6 +1,5 @@
-
-
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.responses import FileResponse
 from app.utils import extract_frames, safe_video_path, frames_to_video, STYLE_FUNCTIONS
 import os
 import uuid
@@ -101,3 +100,20 @@ def create_stylized_video(video_id: str, style: str):
         "message": f"{style} video created successfully",
         "video_path": output_path
     }
+
+
+@app.get("/download_video")
+def download_video(video_id: str, style: str):
+    file_path = os.path.join("styled_videos", video_id, f"{style}.mp4")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Styled video not found")
+    return FileResponse(path=file_path, media_type="video/mp4", filename=f"{video_id}_{style}.mp4")
+
+
+# Download a single styled frame
+@app.get("/download_frame")
+def download_frame(video_id: str, style: str, frame_name: str):
+    file_path = os.path.join("styled_frames", video_id, style, frame_name)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Styled frame not found")
+    return FileResponse(path=file_path, media_type="image/jpeg", filename=frame_name)
