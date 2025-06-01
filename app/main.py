@@ -1,7 +1,7 @@
 
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
-from app.utils import extract_frames
+from app.utils import extract_frames, safe_video_path
 import os
 import uuid
 
@@ -16,7 +16,7 @@ os.makedirs(FRAME_DIR, exist_ok=True)
 @app.post("/upload_video")
 async def upload_video(video: UploadFile = File(...)):
     video_id = str(uuid.uuid4())  # Unique ID to prevent overwrites
-    filename = f"{video_id}_{video.filename}"
+    filename = f"{video_id}.mp4"
     file_path = os.path.join(UPLOAD_DIR, filename)
 
     # Save file to uploads folder
@@ -28,8 +28,8 @@ async def upload_video(video: UploadFile = File(...)):
 
 
 @app.post("/extract_frames")
-def extract(video_id: str, filename: str):
-    video_path = os.path.join(UPLOAD_DIR, filename)
+def extract(video_id: str):
+    video_path = safe_video_path(video_id)
     if not os.path.exists(video_path):
         raise HTTPException(status_code=404, detail="Video not found")
 
