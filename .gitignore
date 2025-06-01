@@ -20,3 +20,8 @@ downloads/
 
 # Environment variables
 .env
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
