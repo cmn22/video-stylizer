@@ -157,3 +157,9 @@ def delete_all():
             else:
                 os.remove(path)
     return {"message": "All files and folders deleted from uploads, frames, styled_frames, and styled_videos"}
+
+
+@app.get("/list_uploads")
+def list_uploads():
+    files = os.listdir("uploads")
+    return {"total_videos": len(files), "videos": files}
