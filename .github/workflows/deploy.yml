@@ -49,6 +49,26 @@ jobs:
           IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:${{ steps.vars.outputs.sha }}"
           cat task-def.json | jq --arg IMAGE "$IMAGE" --arg NAME "$CONTAINER_NAME" '
             .containerDefinitions |= map(if .name == $NAME then .image = $IMAGE else . end)
+            | {
+                family,
+                taskRoleArn,
+                executionRoleArn,
+                networkMode,
+                containerDefinitions,
+                volumes,
+                placementConstraints,
+                requiresCompatibilities,
+                cpu,
+                memory,
+                tags,
+                pidMode,
+                ipcMode,
+                proxyConfiguration,
+                inferenceAccelerators,
+                ephemeralStorage,
+                runtimePlatform,
+                enableFaultInjection
+              }
             | with_entries(select(.value != null))
           ' > new-task-def.json
           REGISTERED=$(aws ecs register-task-definition --cli-input-json file://new-task-def.json)
