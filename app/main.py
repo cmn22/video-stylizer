@@ -18,6 +18,15 @@ os.makedirs(FRAME_DIR, exist_ok=True)
 os.makedirs(STYLE_DIR, exist_ok=True)
 os.makedirs(STYLED_VIDEOS_DIR, exist_ok=True)
 
+
+@app.get("/download_sample")
+def download_sample():
+    file_path = os.path.join("data", "sample.mp4")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Sample video not found")
+    return FileResponse(path=file_path, media_type="video/mp4", filename="sample.mp4")
+
+
 @app.post("/upload_video")
 async def upload_video(video: UploadFile = File(...)):
     video_id = str(uuid.uuid4())  # Unique ID to prevent overwrites
