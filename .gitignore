@@ -16,7 +16,6 @@ uploads/
 frames/
 styled_frames/
 styled_videos/
-data/
 
 # Environment variables
 .env
