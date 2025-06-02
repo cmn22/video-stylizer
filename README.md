@@ -5,6 +5,8 @@ A FastAPI-based microservice that allows users to upload videos, extract frames,
 ---
 
 ## 📁 Directory Overview
+
+```text
 video-stylizer/ 
 ├── app/                  # Core FastAPI app (routes, utils, styler, etc.)
 ├── data/                 # Automatically created structure for processing
@@ -17,6 +19,7 @@ video-stylizer/
 ├── Makefile              # Simplified CLI commands
 ├── infra/            # Infrastructure-as-Code (VPC, ECS, ALB, etc.)
 └── README.md             # This file
+```
 
 ---
 
