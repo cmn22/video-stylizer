@@ -7,16 +7,16 @@ import shutil
 
 app = FastAPI()
 
-BASE_DIR = "data"
-
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-FRAME_DIR = os.path.join(BASE_DIR, "frames")
-STYLE_DIR = os.path.join(BASE_DIR, "styled_frames")
-folders = [os.path.join(BASE_DIR, "uploads"), os.path.join(BASE_DIR, "frames"), os.path.join(BASE_DIR, "styled_frames"), os.path.join(BASE_DIR, "styled_videos")]
+UPLOAD_DIR = "data/uploads"
+FRAME_DIR = "data/frames"
+STYLE_DIR = "data/styled_frames"
+STYLED_VIDEOS_DIR = "data/styled_videos"
+folders = [UPLOAD_DIR, FRAME_DIR, STYLE_DIR, STYLED_VIDEOS_DIR]
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(FRAME_DIR, exist_ok=True)
 os.makedirs(STYLE_DIR, exist_ok=True)
+os.makedirs(STYLED_VIDEOS_DIR, exist_ok=True)
 
 @app.post("/upload_video")
 async def upload_video(video: UploadFile = File(...)):
@@ -45,7 +45,7 @@ def extract(video_id: str):
 
 
 @app.post("/style_frame")
-def style_single_frame(video_id: str, frame_name: str, style: str):
+def style_single_frame(video_id: str, frame_name: str, style: str = "grayscale"):
     if style not in STYLE_FUNCTIONS:
         raise HTTPException(status_code=400, detail=f"Unsupported style: {style}")
 
@@ -63,7 +63,7 @@ def style_single_frame(video_id: str, frame_name: str, style: str):
 
 
 @app.post("/style_frames")
-def style_all_frames(video_id: str, style: str):
+def style_all_frames(video_id: str, style: str = "grayscale"):
     if style not in STYLE_FUNCTIONS:
         raise HTTPException(status_code=400, detail=f"Unsupported style: {style}")
 
@@ -89,8 +89,8 @@ def style_all_frames(video_id: str, style: str):
 
 @app.post("/create_stylized_video")
 def create_stylized_video(video_id: str, style: str):
-    input_dir = os.path.join(BASE_DIR, "styled_frames", video_id, style)
-    output_path = os.path.join(BASE_DIR, "styled_videos", video_id, f"{style}.mp4")
+    input_dir = os.path.join(STYLE_DIR, video_id, style)
+    output_path = os.path.join(STYLED_VIDEOS_DIR, video_id, f"{style}.mp4")
 
     if not os.path.exists(input_dir):
         raise HTTPException(status_code=404, detail="Styled frames not found")
@@ -108,7 +108,7 @@ def create_stylized_video(video_id: str, style: str):
 
 @app.get("/download_video")
 def download_video(video_id: str, style: str):
-    file_path = os.path.join(BASE_DIR, "styled_videos", video_id, f"{style}.mp4")
+    file_path = os.path.join(STYLED_VIDEOS_DIR, video_id, f"{style}.mp4")
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Styled video not found")
     return FileResponse(path=file_path, media_type="video/mp4", filename=f"{video_id}_{style}.mp4")
@@ -117,7 +117,7 @@ def download_video(video_id: str, style: str):
 # Download a single styled frame
 @app.get("/download_frame")
 def download_frame(video_id: str, style: str, frame_name: str):
-    file_path = os.path.join(BASE_DIR, "styled_frames", video_id, style, frame_name)
+    file_path = os.path.join(STYLE_DIR, video_id, style, frame_name)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Styled frame not found")
     return FileResponse(path=file_path, media_type="image/jpeg", filename=frame_name)
@@ -136,7 +136,7 @@ def delete_video(video_id: str):
             deleted.append(path)
 
         # Special case: uploads contains files, not dirs
-        elif folder == os.path.join(BASE_DIR, "uploads"):
+        elif folder == UPLOAD_DIR:
             for f in os.listdir(folder):
                 if f.startswith(video_id):
                     file_path = os.path.join(folder, f)
@@ -163,5 +163,45 @@ def delete_all():
 
 @app.get("/list_uploads")
 def list_uploads():
-    files = os.listdir(os.path.join(BASE_DIR, "uploads"))
+    files = os.listdir(UPLOAD_DIR)
     return {"total_videos": len(files), "videos": files}
+
+
+# Full pipeline endpoint: upload, extract, style, and generate video
+from fastapi import Depends
+
+@app.post("/stylized_video")
+async def full_stylized_pipeline(video: UploadFile = File(...), style: str = "grayscale"):
+    if style not in STYLE_FUNCTIONS:
+        raise HTTPException(status_code=400, detail=f"Unsupported style: {style}")
+
+    # Save uploaded video
+    video_id = str(uuid.uuid4())
+    filename = f"{video_id}.mp4"
+    video_path = os.path.join(UPLOAD_DIR, filename)
+    with open(video_path, "wb") as f:
+        content = await video.read()
+        f.write(content)
+
+    # Extract frames
+    frame_output_dir = os.path.join(FRAME_DIR, video_id)
+    num_frames = extract_frames(video_path, frame_output_dir)
+
+    # Stylize frames
+    styled_dir = os.path.join(STYLE_DIR, video_id, style)
+    os.makedirs(styled_dir, exist_ok=True)
+    frame_files = sorted(f for f in os.listdir(frame_output_dir) if f.endswith(".jpg"))
+    for fname in frame_files:
+        input_path = os.path.join(frame_output_dir, fname)
+        output_path = os.path.join(styled_dir, fname)
+        STYLE_FUNCTIONS[style](input_path, output_path)
+
+    # Generate video
+    output_video_path = os.path.join(STYLED_VIDEOS_DIR, video_id, f"{style}.mp4")
+    frames_to_video(styled_dir, output_video_path)
+
+    return FileResponse(
+        path=output_video_path,
+        media_type="video/mp4",
+        filename=f"{video_id}_{style}.mp4"
+    )
