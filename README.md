@@ -17,7 +17,7 @@ video-stylizer/
 ├── tests/                # Unit + integration test cases
 ├── Dockerfile            # Container definition
 ├── Makefile              # Simplified CLI commands
-├── infra/            # Infrastructure-as-Code (VPC, ECS, ALB, etc.)
+├── infra/                # Infrastructure-as-Code (VPC, ECS, ALB, etc.)
 └── README.md             # This file
 ```
 
