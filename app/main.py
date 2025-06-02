@@ -5,7 +5,20 @@ import os
 import uuid
 import shutil
 
-app = FastAPI()
+app = FastAPI(
+    title="Video Stylizer API",
+    description="""
+    This API lets you upload a video, extract frames, apply AI-powered or classic stylization effects, and download the final result.
+    
+    Stylization Effects Options:
+    - grayscale
+    - cartoon
+    
+    Developed by Chaitanya Malani.
+    GitHub Repo: https://github.com/cmn22/video-stylizer
+    """,
+    version="1.0.0"
+)
 
 UPLOAD_DIR = "data/uploads"
 FRAME_DIR = "data/frames"
