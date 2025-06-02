@@ -12,8 +12,7 @@ def cartoonize_frame(image_path: str) -> np.ndarray:
     img = cv2.resize(img, (640, 480))
 
     # Step 1: Bilateral filtering (for smoothing)
-    for _ in range(2):
-        img = cv2.bilateralFilter(img, d=9, sigmaColor=75, sigmaSpace=75)
+    img = cv2.bilateralFilter(img, d=9, sigmaColor=75, sigmaSpace=75)
 
     # Step 2: Convert to grayscale and apply edge detection
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -37,6 +36,19 @@ def cartoonize_frame(image_path: str) -> np.ndarray:
     return cartoon
 
 
+def grayscale_frame(image_path: str) -> np.ndarray:
+    img = cv2.imread(image_path)
+    if img is None:
+        raise FileNotFoundError(f"Could not read image at {image_path}")
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    return cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+
+
 def save_cartoonized_image(input_path: str, output_path: str):
     cartoon = cartoonize_frame(input_path)
     cv2.imwrite(output_path, cartoon)
+
+
+def save_grayscale_image(input_path: str, output_path: str):
+    grayscale = grayscale_frame(input_path)
+    cv2.imwrite(output_path, grayscale)

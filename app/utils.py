@@ -1,13 +1,14 @@
 import cv2
 import os
 from natsort import natsorted
-from app.styler import save_cartoonized_image
+from app.styler import save_cartoonized_image, save_grayscale_image
 
 BASE_DIR = "data"
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 
 STYLE_FUNCTIONS = {
-    "cartoon": save_cartoonized_image
+    "cartoon": save_cartoonized_image,
+    "grayscale": save_grayscale_image
 }
 
 
@@ -19,7 +20,6 @@ def safe_video_path(video_id_or_filename: str) -> str:
 
 
 def extract_frames(video_path: str, output_dir: str):
-    output_dir = os.path.join(BASE_DIR, output_dir)
     os.makedirs(output_dir, exist_ok=True)
     cap = cv2.VideoCapture(video_path)
     
@@ -37,9 +37,6 @@ def extract_frames(video_path: str, output_dir: str):
 
 
 def frames_to_video(frames_dir: str, output_path: str, fps: int = 24):
-    frames_dir = os.path.join(BASE_DIR, frames_dir)
-    output_path = os.path.join(BASE_DIR, output_path)
-
     frames = natsorted([
         f for f in os.listdir(frames_dir)
         if f.lower().endswith((".jpg", ".png"))
